@@ -198,6 +198,7 @@ var PhantomParser = function (utils, spawn, page, settings) {
      * @return undefined
      */
     this.parseGet = function () {
+        console.log("phantom.parseGet");
         this.handleQueryString();
 
         // InitPhantomJs
@@ -235,6 +236,7 @@ var PhantomParser = function (utils, spawn, page, settings) {
 
         // RestoreFreezedInstance: set all the variables need for ReExecuteJsEvents
 
+        console.log("parseGet - about to open");
         // Open
         this.page.open(this.url, this.onOpen);
         this.page.onLoadFinished = this.onLoadFinished;
@@ -408,6 +410,7 @@ var PhantomParser = function (utils, spawn, page, settings) {
      * @return undefined
      */
     this.onOpen = function (status) {
+        console.log("phantom.onOpen");
         currentParser.report.time.end = Date.now();
         currentParser.report.time.total = currentParser.report.time.end - currentParser.report.time.start;
 
@@ -550,6 +553,7 @@ var PhantomParser = function (utils, spawn, page, settings) {
      * @return undefined
      */
     this.resetReport = function () {
+        console.log("resetReport");
         this.report = {
             errors:     [],
             alerts:     [],
@@ -583,39 +587,43 @@ var PhantomParser = function (utils, spawn, page, settings) {
      * @return undefined
      */
     this.onLoadFinished = function () {
-        if (settings.sanitise !== undefined && settings.sanitise.toString() === 'true') {
-            var tmp_fn  = fs.workingDirectory + '/file_' + ((new Date()).getTime()) + '.html',
-                args    = [ fs.workingDirectory + '/src/tidy.js', tmp_fn ],
-                process;
+        console.log("phantom.onLoadFinished: settings: "+JSON.stringify(settings));
+        // if (settings.sanitise !== undefined && settings.sanitise.toString() === 'true') {
+        //     console.log("sanitise");
+        //     var tmp_fn  = fs.workingDirectory + '/file_' + ((new Date()).getTime()) + '.html',
+        //         args    = [ fs.workingDirectory + '/src/tidy.js', tmp_fn ],
+        //         process;
 
-            fs.write(tmp_fn, page.content, 0777);
-            process = spawn('node', args);
+        //     fs.write(tmp_fn, page.content, 0777);
+        //     process = spawn('node', args);
 
-            process.stdout.on('data', function(data) {
-                try { fs.remove(tmp_fn); } catch (ignore) {}
-                currentParser.sanitisedHtml += data.toString();
-            });
+        //     process.stdout.on('data', function(data) {
+        //         try { fs.remove(tmp_fn); } catch (ignore) {}
+        //         currentParser.sanitisedHtml += data.toString();
+        //     });
 
-            process.stderr.on('data', function(data) {
-                try { fs.remove(tmp_fn); } catch (ignore) {}
-                console.log(data.toString());
-                return currentParser.exit();
-            });
+        //     process.stderr.on('data', function(data) {
+        //         try { fs.remove(tmp_fn); } catch (ignore) {}
+        //         console.log(data.toString());
+        //         return currentParser.exit();
+        //     });
 
-            process.on('exit', function() {
-                try { fs.remove(tmp_fn); } catch (ignore) {}
+        //     process.on('exit', function() {
+        //         try { fs.remove(tmp_fn); } catch (ignore) {}
 
-                if (page.content !== currentParser.sanitisedHtml) {
-                    console.log('HTML sanitised');
-                }
+        //         if (page.content !== currentParser.sanitisedHtml) {
+        //             console.log('HTML sanitised');
+        //         }
 
-                //TODO: What to do if it exits before receive data?
-                currentParser.page.setContent(currentParser.sanitisedHtml, currentParser.url);
-                currentParser.evaluateAndParse();
-            });
-        } else {
+        //         //TODO: What to do if it exits before receive data?
+        //         currentParser.page.setContent(currentParser.sanitisedHtml, currentParser.url);
+        //         currentParser.evaluateAndParse();
+        //     });
+        // } else {
+            console.log("running evaluateAndParse");
             currentParser.evaluateAndParse();
-        }
+        // }
+        console.log("exiting onLoadFinished");
     };
 
     /**
@@ -625,6 +633,7 @@ var PhantomParser = function (utils, spawn, page, settings) {
      * @return undefined
      */
     this.evaluateAndParse = function () {
+        console.log("phantom.evaluateAndParse");
         var step;
 
         // ReExecuteJsEvents
@@ -669,6 +678,7 @@ var PhantomParser = function (utils, spawn, page, settings) {
      * @return undefined
      */
     this.parsePage = function (page) {
+        console.log("phantom.parsePage");
         var url, links = {}, events;
 
         currentParser.report.content = page.content;
@@ -706,7 +716,11 @@ var PhantomParser = function (utils, spawn, page, settings) {
                 }
             }
 
+            // TODO - this is super hacky, what is going on
+            links.form = [];
+
             currentParser.links.form = [].map.call(links.form, function (item) {
+                console.log("form callback");
                 item.action = item.action || url;
                 item.action = utils.normaliseUrl(item.action, url);
 
@@ -717,12 +731,15 @@ var PhantomParser = function (utils, spawn, page, settings) {
                 return item;
             }).concat(currentParser.links.form).filter(utils.onlyUnique);
 
+            console.log("while...");
             while (Object.keys(currentParser.stackPages).length !== 0) {
+                console.log("popping...");
                 currentParser.parsePage(currentParser.stackPages.pop());
             }
         }
 
         links = page.evaluate(currentParser.onEvaluateNonHtml, page.content);
+        console.log("phantom.parsePage - links: "+JSON.stringify(links));
 
         if (links.hasOwnProperty('mixed_full')) {
             currentParser.links.mixed_full = [].map.call(links.mixed_full, function (item) {
@@ -735,6 +752,8 @@ var PhantomParser = function (utils, spawn, page, settings) {
                 return utils.normaliseUrl(item, url);
             }).concat(currentParser.links.mixed_rel).filter(utils.onlyUnique);
         }
+
+        console.log("phantom.parsePage - before exit");
 
         currentParser.exit();
     };

@@ -242,6 +242,7 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
      * @return undefined
      */
     this.execSubProcess = function () {
+        console.log("crawler.execSubProcess");
         var idRequest = utils.sha1(this.url + this.type + JSON.stringify(this.data) + this.evt + this.xPath),
             subprocess,
             params  = {
@@ -277,7 +278,10 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
         settings.push(JSON.stringify(params));
 
         try {
+            console.log("trying to spawn subprocess - config.parser.cmd: "+config.parser.cmd);
             subprocess = spawn(config.parser.cmd, settings);
+
+            console.log("assigning subprocess callbacks");
 
             subprocess.stdout.on('data', this.onStdOut);
             subprocess.stderr.on('data', this.onStdErr);
@@ -301,6 +305,7 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
      * @return undefined
      */
     this.run = function (settings) {
+        console.log("crawler.run");
         this.url   = settings.url;
         this.type  = settings.type || 'GET';
         this.data  = settings.data || {
@@ -347,6 +352,7 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
      * @return undefined
      */
     this.analiseRedisResponse = function (err, reply, redisId, container) {
+        console.log("crawler.analiseRedisResponse - "+reply);
         var id               = redisId.substr(0, 8),
             winstonCrawlerId = '[' + id.cyan + '-' + currentCrawler.idCrawler.magenta + ']',
             newId;
@@ -409,6 +415,7 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
      * @return undefined
      */
     this.checkAndRun = function (settings) {
+        console.log("crawler.checkAndRun");
         var container   = {},
             redisId,
             id,
@@ -463,6 +470,7 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
      * @return boolean
      */
     this.checkRunningCrawlers = function (reason) {
+        console.log("crawler.checkRunningCrawlers");
         if (currentCrawler.possibleCrawlers === 0) {
             var winstonCrawlerId = '[' + currentCrawler.idUri.cyan + '-' + currentCrawler.idCrawler.magenta + ']';
             winston.info('%s Exit: %s', winstonCrawlerId, reason);
@@ -604,6 +612,7 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
      * @return undefined
      */
     this.storeDetailsToFile = function (report) {
+        console.log("crawler.storeDetailsToFile");
         var Reporter      = require('./reporter/report'),
             reporter      = new Reporter(utils),
             reportName    = utils.sha1(currentCrawler.url + currentCrawler.type + JSON.stringify(currentCrawler.data) + currentCrawler.evt + currentCrawler.xPath),
@@ -634,6 +643,7 @@ var Crawler = function (config, spawn, test, client, winston, fs, optimist, util
      * @return undefined
      */
     this.processPage = function (content) {
+        console.log("crawler.processPage");
         currentCrawler.processing = true;
 
         var result,
